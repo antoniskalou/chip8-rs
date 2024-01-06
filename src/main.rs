@@ -1,3 +1,4 @@
+mod buzzer;
 mod cpu;
 mod memory;
 mod rom;
@@ -19,12 +20,16 @@ fn main() -> Result<(), String> {
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
+    let audio_subsystem = sdl_context.audio()?;
 
     let _window = video_subsystem
         .window("Chip8", 800, 600)
         .position_centered()
         .build()
         .expect("window creation failed");
+
+    let buzzer = buzzer::Buzzer::new(audio_subsystem)?;
+    buzzer.play();
 
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
