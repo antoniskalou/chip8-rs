@@ -1,6 +1,8 @@
 use crate::memory::Memory;
 use crate::screen::Screen;
 
+use rand::Rng;
+
 fn u8_from_nibbles(n1: u8, n2: u8) -> u8 {
     (n1 << 4) | n2
 }
@@ -202,6 +204,10 @@ impl CPU {
                 self.i = x as u16 * 5;
             },
             ReadDelay(vx) => self.v[vx as usize] = self.dt,
+            Random(vx, val) => {
+                let rand = rand::thread_rng().gen_range(0..=0xFF);
+                self.v[vx as usize] = rand & val;
+            },
             Add(vx, val) => {
                 let (x, _) = self.v[vx as usize].overflowing_add(val);
                 self.v[vx as usize] = x;
@@ -335,7 +341,13 @@ impl CPU {
                     self.memory.write_u8(pos, *x);
                 }
             },
-            _ => unimplemented!("Unimplemented instruction: {:?}", inst),
+            WaitUntilPressed(vx) => {
+                match self.keys.iter().position(|b| *b) {
+                    Some(i) => self.v[vx as usize] = i as u8,
+                    // keep looping
+                    None => self.pc -= 2,
+                }
+            }
         }
     }
 
