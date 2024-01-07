@@ -224,26 +224,24 @@ impl CPU {
                 let y = self.v[vy as usize];
                 let (new_x, overflow) = x.overflowing_sub(y);
                 self.v[vx as usize] = new_x;
-                self.v[0xF] = overflow as u8;
+                self.v[0xF] = !overflow as u8;
             },
             SubtractVxFromVy(vx, vy) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 let (new_x, overflow) = y.overflowing_sub(x);
                 self.v[vx as usize] = new_x;
-                self.v[0xF] = overflow as u8;
+                self.v[0xF] = !overflow as u8;
             },
             ShiftRight(vx, vy) => {
                 let y = self.v[vy as usize];
-                let (new_x, overflow) = y.overflowing_shr(1);
-                self.v[vx as usize] = new_x;
-                self.v[0xF] = overflow as u8;
+                self.v[vx as usize] = y >> 1;
+                self.v[0xF] = y & 1;
             },
             ShiftLeft(vx, vy) => {
                 let y = self.v[vy as usize];
-                let (new_x, overflow) = y.overflowing_shl(1);
-                self.v[vx as usize] = new_x;
-                self.v[0xF] = overflow as u8;
+                self.v[vx as usize] = y << 1;
+                self.v[0xF] = y >> 7;
             },
             BinaryOr(vx, vy) => {
                 let x = self.v[vx as usize];

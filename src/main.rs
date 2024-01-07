@@ -86,8 +86,8 @@ fn main() -> Result<(), String> {
     // load emulator components
     let mut memory = memory::Memory::new();
     // TODO: make this a function called `Memory::with_rom(&[u8]) -> Memory`
-    memory.load(&fonts::FONTSET, 0x0);
-    memory.load(&rom, 0x200);
+    memory.load(&fonts::FONTSET, fonts::BASE_ADDRESS);
+    memory.load(&rom, rom::BASE_ADDRESS);
     let mut cpu = cpu::CPU::new(memory);
 
     // main loop
