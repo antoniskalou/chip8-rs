@@ -131,8 +131,8 @@ impl CPU {
         }
     }
 
-    pub fn press_key(&mut self, key: usize, pressed: bool) {
-        self.keys[key] = pressed;
+    pub fn press_key(&mut self, key: u8, pressed: bool) {
+        self.keys[key as usize] = pressed;
     }
 
     pub fn screen_buffer(&self) -> &[bool] {
