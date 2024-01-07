@@ -6,7 +6,7 @@ mod rom;
 mod screen;
 
 use sdl2::event::Event;
-use sdl2::keyboard::{Keycode, Scancode};
+use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
@@ -23,7 +23,7 @@ const REFRESH_PER_SECOND: f32 = 1. / TARGET_FPS as f32;
 
 fn timed<F>(mut f: F) -> Duration
 where
-    F: FnMut() -> ()
+    F: FnMut() -> (),
 {
     let start = Instant::now();
     f();
@@ -92,7 +92,7 @@ fn main() -> Result<(), String> {
         .window(
             "Chip8",
             screen::WIDTH as u32 * RENDER_SCALE,
-            screen::HEIGHT as u32 * RENDER_SCALE
+            screen::HEIGHT as u32 * RENDER_SCALE,
         )
         .position_centered()
         .vulkan()
@@ -111,8 +111,8 @@ fn main() -> Result<(), String> {
     // TODO: make this a function called `Memory::with_rom(&[u8]) -> Memory`
     memory.load(&fonts::FONTSET, fonts::BASE_ADDRESS);
     memory.load(&rom, rom::BASE_ADDRESS);
-    let mut cpu = cpu::CPU::new(memory);
 
+    let mut cpu = cpu::CPU::new(memory);
     // main loop
     let mut event_pump = sdl_context.event_pump()?;
     'running: loop {
@@ -124,12 +124,18 @@ fn main() -> Result<(), String> {
                     scancode: Some(Scancode::Escape),
                     ..
                 } => break 'running,
-                Event::KeyDown { scancode: Some(scancode), .. } => {
+                Event::KeyDown {
+                    scancode: Some(scancode),
+                    ..
+                } => {
                     if let Some(k) = scancode_to_key(scancode) {
                         cpu.press_key(k, true);
                     }
-                },
-                Event::KeyUp { scancode: Some(scancode), .. } => {
+                }
+                Event::KeyUp {
+                    scancode: Some(scancode),
+                    ..
+                } => {
                     if let Some(k) = scancode_to_key(scancode) {
                         cpu.press_key(k, false);
                     }
@@ -141,18 +147,18 @@ fn main() -> Result<(), String> {
 
         // timers
         cpu.tick_timers();
+        // cpu tick
+        let elapsed = timed(|| {
+            for _ in 0..=CYCLES_PER_REFRESH {
+                cpu.tick();
+            }
+        });
         // audio
         if cpu.is_sound_playing() {
             buzzer.play();
         } else {
             buzzer.pause();
         }
-        // cpu tick
-        let elapsed = timed(|| {
-            for _ in 0 .. CYCLES_PER_REFRESH {
-                cpu.tick();
-            }
-        });
 
         draw_graphics(&mut canvas, cpu.screen_buffer());
 

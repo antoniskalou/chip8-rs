@@ -52,8 +52,6 @@ fn test_u16_to_nibbles() {
 
 const NUM_REGS: usize = 16;
 const NUM_KEYS: usize = 16;
-// screen always has 64x32, it can be upscaled by the renderer
-const SCREEN_SIZE: usize = 64 * 32;
 
 #[derive(Debug)]
 pub struct CPU {
@@ -132,6 +130,7 @@ impl CPU {
     }
 
     pub fn press_key(&mut self, key: u8, pressed: bool) {
+        assert!(key < 0x10);
         self.keys[key as usize] = pressed;
     }
 
@@ -202,71 +201,71 @@ impl CPU {
             SetFont(vx) => {
                 let x = self.v[vx as usize];
                 self.i = x as u16 * 5;
-            },
+            }
             ReadDelay(vx) => self.v[vx as usize] = self.dt,
             Random(vx, val) => {
                 let rand = rand::thread_rng().gen_range(0..=0xFF);
                 self.v[vx as usize] = rand & val;
-            },
+            }
             Add(vx, val) => {
                 let (x, _) = self.v[vx as usize].overflowing_add(val);
                 self.v[vx as usize] = x;
-            },
+            }
             AddToIndex(vx) => {
                 self.i += self.v[vx as usize] as u16;
                 if self.i >= 0x1000 {
                     self.v[0xF] = 1;
                 }
-            },
+            }
             AddVxToVy(vx, vy) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 let (new_x, overflow) = x.overflowing_add(y);
                 self.v[vx as usize] = new_x;
                 self.v[0xF] = overflow as u8;
-            },
+            }
             SubtractVyFromVx(vx, vy) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 let (new_x, overflow) = x.overflowing_sub(y);
                 self.v[vx as usize] = new_x;
                 self.v[0xF] = !overflow as u8;
-            },
+            }
             SubtractVxFromVy(vx, vy) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 let (new_x, overflow) = y.overflowing_sub(x);
                 self.v[vx as usize] = new_x;
                 self.v[0xF] = !overflow as u8;
-            },
+            }
             ShiftRight(vx, vy) => {
                 let y = self.v[vy as usize];
                 self.v[vx as usize] = y >> 1;
                 self.v[0xF] = y & 1;
-            },
+            }
             ShiftLeft(vx, vy) => {
                 let y = self.v[vy as usize];
                 self.v[vx as usize] = y << 1;
                 self.v[0xF] = y >> 7;
-            },
+            }
             BinaryOr(vx, vy) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 self.v[0xF] = 0;
                 self.v[vx as usize] = x | y;
-            },
+            }
             BinaryAnd(vx, vy) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 self.v[0xF] = 0;
                 self.v[vx as usize] = x & y;
-            },
+            }
             BinaryXor(vx, vy) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 self.v[0xF] = 0;
                 self.v[vx as usize] = x ^ y;
-            },
+            }
             Bcd(vx) => {
                 let x = self.v[vx as usize];
                 let ones = x % 10;
@@ -275,72 +274,72 @@ impl CPU {
                 self.memory.write_u8(self.i, hundreds);
                 self.memory.write_u8(self.i + 1, tens);
                 self.memory.write_u8(self.i + 2, ones);
-            },
+            }
             Draw(vx, vy, rows) => {
                 let x = self.v[vx as usize];
                 let y = self.v[vy as usize];
                 let f_flag = self.screen.draw(&self.memory, self.i, x, y, rows);
                 self.v[0xF] = f_flag as u8;
-            },
+            }
             SkipIfEq(vx, val) => {
                 if self.v[vx as usize] == val {
                     self.pc += 2;
                 }
-            },
+            }
             SkipIfNe(vx, val) => {
                 if self.v[vx as usize] != val {
                     self.pc += 2;
                 }
-            },
+            }
             SkipIfVxVyEq(vx, vy) => {
                 if self.v[vx as usize] == self.v[vy as usize] {
                     self.pc += 2;
                 }
-            },
+            }
             SkipIfVxVyNe(vx, vy) => {
                 if self.v[vx as usize] != self.v[vy as usize] {
                     self.pc += 2;
                 }
-            },
+            }
             SkipIfPressed(vx) => {
                 let x = self.v[vx as usize];
                 if self.keys[x as usize] {
                     self.pc += 2;
                 }
-            },
+            }
             SkipIfNotPressed(vx) => {
                 let x = self.v[vx as usize];
-                if self.keys[x as usize] {
+                if !self.keys[x as usize] {
                     self.pc += 2;
                 }
-            },
+            }
             Jump(addr) => self.pc = addr,
             JumpV0(addr) => self.pc = addr + (self.v[0x0] as u16),
             Call(addr) => {
                 self.sp += 2;
                 self.memory.write_u16(self.sp, self.pc);
                 self.pc = addr;
-            },
+            }
             Return => {
                 let addr = self.memory.read_u16(self.sp);
                 self.sp -= 2;
                 self.pc = addr;
-            },
+            }
             Load(vx) => {
                 assert!(vx < 0x10);
-                let slice = &mut self.v[0..(vx + 1) as usize];
+                let slice = &mut self.v[0..=vx as usize];
                 for (n, x) in slice.iter_mut().enumerate() {
                     *x = self.memory.read_u8(self.i + n as u16);
                 }
-            },
+            }
             Store(vx) => {
                 assert!(vx < 0x10);
-                let slice = &self.v[0..(vx + 1) as usize];
+                let slice = &self.v[0..=vx as usize];
                 for (n, x) in slice.iter().enumerate() {
                     let pos = self.i + (n as u16);
                     self.memory.write_u8(pos, *x);
                 }
-            },
+            }
             WaitUntilPressed(vx) => {
                 match self.keys.iter().position(|b| *b) {
                     Some(i) => self.v[vx as usize] = i as u8,

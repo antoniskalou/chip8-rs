@@ -26,7 +26,7 @@ impl Screen {
         for y_line in 0..rows {
             let pixels = memory.read_u8(i + (y_line as u16));
             for x_line in 0..8 {
-                if pixels & (0b1000_0000 >> x_line) != 0 {
+                if (pixels & (0b1000_0000 >> x_line)) != 0 {
                     let x = (x + x_line) as usize % WIDTH;
                     let y = (y + y_line) as usize % HEIGHT;
                     let idx = x + WIDTH * y;
