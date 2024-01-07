@@ -5,6 +5,7 @@ mod memory;
 mod rom;
 mod screen;
 
+use clap::Parser;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
@@ -76,13 +77,14 @@ fn scancode_to_key(scancode: Scancode) -> Option<u8> {
     }
 }
 
-fn main() -> Result<(), String> {
-    let rom_path = std::env::args()
-        .nth(1)
-        .map(|p| PathBuf::from(p))
-        .ok_or_else(|| "Usage: chip8 <ROM FILE>")?;
+#[derive(Debug, Parser)]
+struct Cli {
+    rom_path: PathBuf,
+}
 
-    let rom = rom::load(&rom_path).map_err(|e| e.to_string())?;
+fn main() -> Result<(), String> {
+    let args = Cli::parse();
+    let rom = rom::load(&args.rom_path).map_err(|e| e.to_string())?;
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
