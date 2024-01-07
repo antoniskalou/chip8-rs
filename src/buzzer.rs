@@ -39,7 +39,7 @@ impl Buzzer {
             channels: Some(1),
         };
         let device = sys.open_playback(None, &desired_spec, |spec| SquareWave {
-            phase_inc: 200.0 / spec.freq as f32,
+            phase_inc: 150.0 / spec.freq as f32,
             phase: 0.0,
             volume: 0.25,
         })?;
