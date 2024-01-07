@@ -79,7 +79,14 @@ fn scancode_to_key(scancode: Scancode) -> Option<u8> {
 
 #[derive(Debug, Parser)]
 struct Cli {
+    #[arg(help = "Path to a Chip8 ROM")]
     rom_path: PathBuf,
+    #[arg(long, help = "Foreground colour")]
+    fg: Option<String>,
+    #[arg(long, help = "Background colour")]
+    bg: Option<String>,
+    #[arg(short, long, default_value_t = 20)]
+    scale: u32,
 }
 
 fn main() -> Result<(), String> {

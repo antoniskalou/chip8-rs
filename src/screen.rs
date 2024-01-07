@@ -23,12 +23,12 @@ impl Screen {
 
     pub fn draw(&mut self, memory: &Memory, i: u16, x: u8, y: u8, rows: u8) -> bool {
         let mut f_flag = false;
-        for y_line in 0..rows {
-            let pixels = memory.read_u8(i + (y_line as u16));
+        for y_line in 0..(rows as u16) {
+            let pixels = memory.read_u8(i + y_line);
             for x_line in 0..8 {
                 if (pixels & (0b1000_0000 >> x_line)) != 0 {
-                    let x = (x + x_line) as usize % WIDTH;
-                    let y = (y + y_line) as usize % HEIGHT;
+                    let x = (x as u16 + x_line) as usize % WIDTH;
+                    let y = (y as u16 + y_line) as usize % HEIGHT;
                     let idx = x + WIDTH * y;
 
                     f_flag |= self.0[idx];
