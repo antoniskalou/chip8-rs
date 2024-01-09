@@ -5,7 +5,7 @@ mod memory;
 mod rom;
 mod screen;
 
-use clap::Parser;
+use clap::{Args, Parser};
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
@@ -15,7 +15,6 @@ use sdl2::video::Window;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
-const RENDER_SCALE: u32 = 20;
 const TARGET_FPS: u32 = 60;
 const TARGET_MHZ: u32 = 540;
 // the number of CPU cycles that occur before a refresh happens
@@ -36,17 +35,17 @@ fn clear_graphics(canvas: &mut Canvas<Window>) {
     canvas.clear();
 }
 
-fn draw_graphics(canvas: &mut Canvas<Window>, buffer: &[bool]) {
+fn draw_graphics(config: &Config, canvas: &mut Canvas<Window>, buffer: &[bool]) {
     canvas.set_draw_color(Color::RGB(0x00, 0xFF, 0x00));
     for (i, pixel) in buffer.iter().enumerate() {
         if *pixel {
             let x = (i % screen::WIDTH) as u32;
             let y = (i / screen::WIDTH) as u32;
             let rect = Rect::new(
-                (x * RENDER_SCALE) as i32,
-                (y * RENDER_SCALE) as i32,
-                RENDER_SCALE,
-                RENDER_SCALE,
+                (x * config.scale) as i32,
+                (y * config.scale) as i32,
+                config.scale,
+                config.scale,
             );
             canvas.fill_rect(rect).expect("fill_rect failed");
         }
@@ -77,10 +76,8 @@ fn scancode_to_key(scancode: Scancode) -> Option<u8> {
     }
 }
 
-#[derive(Debug, Parser)]
-struct Cli {
-    #[arg(help = "Path to a Chip8 ROM")]
-    rom_path: PathBuf,
+#[derive(Clone, Debug, Args)]
+struct Config {
     #[arg(long, help = "Foreground colour")]
     fg: Option<String>,
     #[arg(long, help = "Background colour")]
@@ -89,8 +86,17 @@ struct Cli {
     scale: u32,
 }
 
+#[derive(Debug, Parser)]
+struct Cli {
+    #[arg(help = "Path to a Chip8 ROM")]
+    rom_path: PathBuf,
+    #[command(flatten)]
+    config: Config,
+}
+
 fn main() -> Result<(), String> {
     let args = Cli::parse();
+    let config = args.config;
     let rom = rom::load(&args.rom_path).map_err(|e| e.to_string())?;
 
     let sdl_context = sdl2::init()?;
@@ -100,8 +106,8 @@ fn main() -> Result<(), String> {
     let window = video_subsystem
         .window(
             "Chip8",
-            screen::WIDTH as u32 * RENDER_SCALE,
-            screen::HEIGHT as u32 * RENDER_SCALE,
+            screen::WIDTH as u32 * config.scale,
+            screen::HEIGHT as u32 * config.scale,
         )
         .position_centered()
         .vulkan()
@@ -169,7 +175,7 @@ fn main() -> Result<(), String> {
             buzzer.pause();
         }
 
-        draw_graphics(&mut canvas, cpu.screen_buffer());
+        draw_graphics(&config, &mut canvas, cpu.screen_buffer());
 
         // wait for next iteration
         let rps = Duration::from_secs_f32(REFRESH_PER_SECOND);
