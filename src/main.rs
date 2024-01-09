@@ -6,6 +6,7 @@ mod rom;
 mod screen;
 
 use clap::{Args, Parser};
+use sdl2::VideoSubsystem;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
 use sdl2::pixels::Color;
@@ -28,6 +29,28 @@ where
     let start = Instant::now();
     f();
     start.elapsed()
+}
+
+fn init_graphics(
+    config: &Config,
+    video: VideoSubsystem
+) -> Result<Canvas<Window>, String>
+{
+    let window = video
+        .window(
+            "Chip8",
+            screen::WIDTH as u32 * config.scale,
+            screen::HEIGHT as u32 * config.scale,
+        )
+        .position_centered()
+        .vulkan()
+        .build()
+        .expect("window creation failed");
+
+    // init rendering
+    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    canvas.set_draw_color(Color::RGB(0xFF, 0xFF, 0xFF));
+    Ok(canvas)
 }
 
 fn clear_graphics(canvas: &mut Canvas<Window>) {
@@ -103,20 +126,7 @@ fn main() -> Result<(), String> {
     let video_subsystem = sdl_context.video()?;
     let audio_subsystem = sdl_context.audio()?;
 
-    let window = video_subsystem
-        .window(
-            "Chip8",
-            screen::WIDTH as u32 * config.scale,
-            screen::HEIGHT as u32 * config.scale,
-        )
-        .position_centered()
-        .vulkan()
-        .build()
-        .expect("window creation failed");
-
-    // init rendering
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
-    canvas.set_draw_color(Color::RGB(0xFF, 0xFF, 0xFF));
+    let mut canvas = init_graphics(&config, video_subsystem)?;
 
     // init audio
     let buzzer = buzzer::Buzzer::new(audio_subsystem)?;
