@@ -9,7 +9,7 @@ use clap::{Args, Parser};
 use sdl2::VideoSubsystem;
 use sdl2::event::Event;
 use sdl2::keyboard::Scancode;
-use sdl2::pixels::Color;
+use sdl2::pixels::{Color, PixelFormat, PixelFormatEnum};
 use sdl2::rect::Rect;
 use sdl2::render::Canvas;
 use sdl2::video::Window;
@@ -53,13 +53,13 @@ fn init_graphics(
     Ok(canvas)
 }
 
-fn clear_graphics(canvas: &mut Canvas<Window>) {
-    canvas.set_draw_color(Color::RGB(0x00, 0x00, 0x00));
+fn clear_graphics(config: &Config, canvas: &mut Canvas<Window>) {
+    canvas.set_draw_color(config.bg.to_sdl_color());
     canvas.clear();
 }
 
 fn draw_graphics(config: &Config, canvas: &mut Canvas<Window>, buffer: &[bool]) {
-    canvas.set_draw_color(Color::RGB(0x00, 0xFF, 0x00));
+    canvas.set_draw_color(config.fg.to_sdl_color());
     for (i, pixel) in buffer.iter().enumerate() {
         if *pixel {
             let x = (i % screen::WIDTH) as u32;
@@ -68,8 +68,7 @@ fn draw_graphics(config: &Config, canvas: &mut Canvas<Window>, buffer: &[bool]) 
                 (x * config.scale) as i32,
                 (y * config.scale) as i32,
                 config.scale,
-                config.scale,
-            );
+                config.scale,);
             canvas.fill_rect(rect).expect("fill_rect failed");
         }
     }
@@ -99,12 +98,46 @@ fn scancode_to_key(scancode: Scancode) -> Option<u8> {
     }
 }
 
+#[derive(Clone, Debug)]
+struct ColorArg(u32);
+
+impl ColorArg {
+    pub fn to_sdl_color(&self) -> Color {
+        let format = PixelFormat::try_from(PixelFormatEnum::RGB888)
+            // should never happen
+            .expect("invalid format provided to PixelFormat");
+        Color::from_u32(&format, self.0)
+    }
+}
+
+impl std::str::FromStr for ColorArg {
+    type Err = std::num::ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(u32::from_str_radix(s, 16)?))
+    }
+}
+
+impl std::fmt::Display for ColorArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:06X}", self.0)
+    }
+}
+
 #[derive(Clone, Debug, Args)]
 struct Config {
-    #[arg(long, help = "Foreground colour")]
-    fg: Option<String>,
-    #[arg(long, help = "Background colour")]
-    bg: Option<String>,
+    #[arg(
+        long,
+        help = "Foreground colour in hex format (e.g. FF0000 for red)",
+        default_value_t = ColorArg(0x00FF00),
+    )]
+    fg: ColorArg,
+    #[arg(
+        long,
+        help = "Background colour in hex format (e.g. FF0000 for red)",
+        default_value_t = ColorArg(0x000000),
+    )]
+    bg: ColorArg,
     #[arg(short, long, default_value_t = 20)]
     scale: u32,
 }
@@ -168,7 +201,7 @@ fn main() -> Result<(), String> {
                 _ => {}
             }
         }
-        clear_graphics(&mut canvas);
+        clear_graphics(&config, &mut canvas);
 
         // timers
         cpu.tick_timers();
