@@ -166,7 +166,6 @@ fn main() -> Result<(), String> {
 
     // load emulator components
     let mut memory = memory::Memory::new();
-    // TODO: make this a function called `Memory::with_rom(&[u8]) -> Memory`
     memory.load(&fonts::FONTSET, fonts::BASE_ADDRESS);
     memory.load(&rom, rom::BASE_ADDRESS);
 

@@ -20,7 +20,6 @@ impl Memory {
     pub fn read_u16(&self, pos: u16) -> u16 {
         let b1 = self.0[pos as usize] as u16;
         let b2 = self.0[(pos + 1) as usize] as u16;
-        // FIXME: find a way to handle endianness
         (b1 << 8) | b2
     }
 
